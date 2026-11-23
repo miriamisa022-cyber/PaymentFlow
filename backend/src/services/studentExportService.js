@@ -18,7 +18,7 @@ function exportQuery(filter, includeDeleted) {
   return query;
 }
 
-async function currentExportPermissions(user, schoolId, allowGlobal = false) {
+async function currentExportPermissions(user, schoolId) {
   const { userId } = user;
   if (user.role === 'admin' && userId === 'super_admin') {
     return studentExportPermissions(user, false);
@@ -27,7 +27,7 @@ async function currentExportPermissions(user, schoolId, allowGlobal = false) {
   const User = require('../models/userModel');
   const account = await User.findOne({
     _id: userId,
-    schoolId: allowGlobal || user.roles?.includes('super_admin') ? { $in: [schoolId, null] } : schoolId,
+    $or: [{ schoolId }, { schoolId: null, roles: 'super_admin' }],
     isActive: true,
   }).select('roles permissions').lean();
   return studentExportPermissions(account || {}, account?.permissions?.includes('pii_export'));
@@ -36,7 +36,7 @@ async function currentExportPermissions(user, schoolId, allowGlobal = false) {
 async function generateStudentExport({ schoolId, columns, filters, includeDeleted, requestedBy, globalAdmin }) {
   const { allowed, admin } = await currentExportPermissions({
     userId: requestedBy, role: globalAdmin ? 'admin' : undefined,
-  }, schoolId, true);
+  }, schoolId);
   if (!allowed.length || (includeDeleted && !admin) || columns.some((column) => !allowed.includes(column))) {
     throw new Error('Student export access denied');
   }

@@ -127,8 +127,8 @@ async function getJobStatus(jobId) {
 
 async function setJobProcessing(jobId) {
   await ReportJob.findOneAndUpdate(
-    { jobId, status: REPORT_STATUSES.PENDING },
-    { status: REPORT_STATUSES.PROCESSING, startedAt: new Date() }
+    { jobId, status: { $in: [REPORT_STATUSES.PENDING, REPORT_STATUSES.FAILED] } },
+    { $set: { status: REPORT_STATUSES.PROCESSING, startedAt: new Date() }, $unset: { 'result.error': 1 } }
   );
 }
 
