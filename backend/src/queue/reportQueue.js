@@ -46,7 +46,7 @@ async function enqueueReportJob(jobData) {
 
   // Deduplication: return an existing pending/processing job for the same
   // school + type + date range instead of creating a duplicate.
-  const existingJob = await ReportJob.findOne({
+  const existingJob = jobData.type === 'student_export' ? null : await ReportJob.findOne({
     schoolId: jobData.schoolId,
     type: jobData.type || 'report',
     status: { $in: [REPORT_STATUSES.PENDING, REPORT_STATUSES.PROCESSING] },
@@ -78,6 +78,10 @@ async function enqueueReportJob(jobData) {
       schemaVersion: jobData.schemaVersion || null,
       format: jobData.format || 'json',
     },
+    ...(jobData.type === 'student_export' ? {
+      requestedBy: jobData.requestedBy,
+      studentExport: { columns: jobData.columns, includeDeleted: jobData.includeDeleted },
+    } : {}),
     expiresAt,
   });
 
@@ -143,7 +147,7 @@ async function setJobCompleted(jobId, { artifactKey, schemaVersion = null }) {
   ).lean();
 
   // Notify SSE clients so they receive push completion rather than polling.
-  if (updated) {
+  if (updated && updated.type !== 'student_export') {
     try {
       const { createReportDownloadUrl } = require('../services/reportArtifactStorage');
       const remainingSeconds = Math.max(1, Math.floor((updated.downloadExpiresAt.getTime() - Date.now()) / 1000));

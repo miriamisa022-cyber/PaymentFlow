@@ -18,6 +18,7 @@ const {
   reconcileStudent,
   getFeeHistory,
   exportStudents,
+  getStudentExport,
   adjustStudentCredit,
 } = require('../controllers/studentController');
 const { resubscribeReminders } = require('../controllers/reminderController');
@@ -36,7 +37,8 @@ router.use(resolveSchool);
 router.post('/', requireAdminAuth, auditContext, validateRegisterStudent, registerStudent);
 router.post('/bulk', requireAdminAuth, auditContext, bulkImportLimiter, express.json({ limit: '1mb' }), streamingCsvUpload({ requiredHeaders: ['studentId', 'name', 'class'] }), bulkImportStudents);
 router.get('/', requireAdminAuth, validatePagination, getAllStudents);
-router.get('/export', requireAdminAuth, exportStudents);
+router.get('/export', requireSchoolAuth(), exportStudents);
+router.get('/export/:jobId', requireSchoolAuth(), getStudentExport);
 
 // Import job status — registered BEFORE /:studentId so Express does not
 // capture the literal segment 'import' as a studentId parameter.
