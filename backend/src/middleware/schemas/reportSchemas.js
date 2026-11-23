@@ -14,9 +14,13 @@ const reportQuerySchema = Joi.object({
   endDate:        Joi.string().isoDate().optional(),
   format:         Joi.string().valid('json', 'csv', 'accounting_csv').default('json'),
   schema_version: Joi.number().integer().min(1).max(1).default(1),
+  groupBy:       Joi.string().valid('confirmedAt', 'createdAt').optional(),
   async:          Joi.boolean().optional(),
 }).custom((value, helpers) => {
   const { startDate, endDate } = value;
+  if (value.groupBy && value.format === 'accounting_csv') {
+    return helpers.error('any.invalid', { message: 'groupBy is available for summary reports only' });
+  }
   if (startDate && endDate) {
     const start = new Date(startDate);
     const end   = new Date(endDate);
