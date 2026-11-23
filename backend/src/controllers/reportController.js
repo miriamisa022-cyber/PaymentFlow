@@ -28,9 +28,8 @@ function getDaysBetween(startDate, endDate) {
 async function getReport(req, res, next) {
   try {
     const { startDate, endDate, format = 'json', schema_version, groupBy } = req.query;
-    // req.query values are always strings; coerce explicitly so ?async=false is
-    // treated as false rather than the truthy string "false".
-    const isAsync = req.query.async === 'true';
+    const isAsync = req.query.async === true || req.query.async === 'true';
+    const isSync = req.query.async === false || req.query.async === 'false';
     const isLargeReport = !startDate || !endDate || getDaysBetween(startDate, endDate) >= LARGE_REPORT_THRESHOLD_DAYS;
 
     // Audit report exports — exports can contain PII so they are a privileged read
@@ -54,7 +53,7 @@ async function getReport(req, res, next) {
       });
     }
 
-    if (isAsync || isLargeReport) {
+    if (isAsync || (isLargeReport && !isSync)) {
       try {
         const job = await enqueueReportJob({
           schoolId: req.schoolId,

@@ -63,8 +63,12 @@ const UNCONFIRMED = '__unconfirmed';
 
 function reportDateRange(startDate, endDate, timezone) {
   return {
-    ...(startDate ? { $gte: localDateStartUtc(startDate, timezone) } : {}),
-    ...(endDate ? { $lt: localDateStartUtc(nextDateString(endDate), timezone) } : {}),
+    ...(startDate ? {
+      $gte: startDate.length === 10 ? localDateStartUtc(startDate, timezone) : new Date(startDate),
+    } : {}),
+    ...(endDate ? endDate.length === 10
+      ? { $lt: localDateStartUtc(nextDateString(endDate), timezone) }
+      : { $lte: new Date(endDate) } : {}),
   };
 }
 
@@ -217,9 +221,9 @@ async function generateReport({ schoolId, startDate, endDate, timezone = 'UTC', 
   // Calculate dateRangeDays to indicate actual range returned
   let dateRangeDays = null;
   if (startDate && endDate) {
-    const start = new Date(startDate + 'T00:00:00.000Z');
-    const end = new Date(endDate + 'T23:59:59.999Z');
-    dateRangeDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    dateRangeDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
   }
 
   return {
